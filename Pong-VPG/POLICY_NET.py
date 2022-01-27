@@ -20,8 +20,7 @@ class NeuralNetwork(nn.Module):
         torch.nn.init.kaiming_uniform_(self.fc1.weight)
         # Output 2 values: fly up and do nothing
         self.fc2 = nn.Linear(512, self.actionSpaceSize)
-        torch.nn.init.kaiming_uniform_(self.fc2.weight)
-        
+        torch.nn.init.xavier_uniform_(self.fc2.weight)
         self.relu = nn.ReLU(inplace=True)
         self.softmax = nn.Softmax()
 
