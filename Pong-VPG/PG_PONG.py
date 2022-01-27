@@ -16,7 +16,7 @@ import Transition
 device = "cuda" if torch.cuda.is_available() else "cpu"
 print(f"Using {device} device")
 ##Hyperparameters
-learning_rate_policy = 0.00001
+learning_rate_policy = 0.0001
 learning_rate_value = 0.001
 GAMMA = 0.99
 EPISODES = 5000
@@ -24,7 +24,8 @@ BATCH_SIZE = 5
 INPUTSIZE = (84,84)
 
 
-def train_POLICYNET(pred , actions, A, loss_fn, agent, optimizer):
+def train_POLICYNET(states , actions, A, loss_fn, agent, optimizer):
+    pred = agent(states)
     actions = actions*A.unsqueeze(1)
     loss = loss_fn(pred, actions)
     optimizer.zero_grad()
@@ -67,7 +68,6 @@ def predict_POLICY(agent, state, transition):
         state = np.expand_dims(state, axis=0)
         prob = agent(torch.from_numpy(state).float())
         cache =  torch.squeeze(prob)
-        cache.requires_grad = True
         transition.probs.append(cache)
         prob = prob.cpu().detach().numpy()
         prob = np.squeeze(prob)
@@ -147,7 +147,7 @@ if __name__ == "__main__":
             probs = probs.float()
             ##TRAIN
             V_ESTIMATES = torch.squeeze(predict_VALUE(value_estimator, states)).float()
-            loss_policy = train_POLICYNET(probs.to(device), actions.to(device),  (G-V_ESTIMATES).to(device), loss_POLICY, agent, optimizer_POLICY)
+            loss_policy = train_POLICYNET(states.to(device), actions.to(device),  (G-V_ESTIMATES).to(device), loss_POLICY, agent, optimizer_POLICY)
             loss_value = train_ESTIMATORNET(states, G, loss_VALUE, value_estimator, optimizer_VALUE)
             print(loss_policy)
             print(loss_value)
