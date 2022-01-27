@@ -24,10 +24,12 @@ BATCH_SIZE = 5
 INPUTSIZE = (84,84)
 
 
-def train_POLICYNET(states , actions, A, loss_fn, agent, optimizer):
+def train_POLICYNET(states , actions, A, agent, optimizer):
     pred = agent(states)
     actions = actions*A.unsqueeze(1)
-    loss = loss_fn(pred, actions)
+    problogs = torch.log(pred)
+    loss = torch.mean(-problogs*actions)
+    #loss = loss_fn(pred, actions)
     optimizer.zero_grad()
     loss.backward()
     optimizer.step()
@@ -90,7 +92,6 @@ if __name__ == "__main__":
     agent = POLICY_NET.NeuralNetwork(2).to(device)
     value_estimator = VALUE_ESTIMATOR.NeuralNetwork().to(device)
     ##Optimization stuff
-    loss_POLICY = torch.nn.CrossEntropyLoss()
     loss_VALUE = torch.nn.HuberLoss()
     optimizer_POLICY = optim.Adam(agent.parameters(), lr = learning_rate_policy)
     optimizer_VALUE = optim.Adam(value_estimator.parameters(), lr = learning_rate_value)
@@ -143,11 +144,11 @@ if __name__ == "__main__":
             actions = [torch.from_numpy(np.array(action)) for action in transition.actions]
             actions = torch.stack(actions)
             actions = actions.float()
-            probs = torch.stack(transition.probs)
-            probs = probs.float()
+            #probs = torch.stack(transition.probs)
+            #probs = probs.float()
             ##TRAIN
             V_ESTIMATES = torch.squeeze(predict_VALUE(value_estimator, states)).float()
-            loss_policy = train_POLICYNET(states.to(device), actions.to(device),  (G-V_ESTIMATES).to(device), loss_POLICY, agent, optimizer_POLICY)
+            loss_policy = train_POLICYNET(states.to(device), actions.to(device),  (G-V_ESTIMATES).to(device), agent, optimizer_POLICY)
             loss_value = train_ESTIMATORNET(states, G, loss_VALUE, value_estimator, optimizer_VALUE)
             print(loss_policy)
             print(loss_value)
