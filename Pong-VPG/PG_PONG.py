@@ -32,6 +32,8 @@ def train_POLICYNET(states , actions, A, agent, optimizer):
     #loss = loss_fn(pred, actions)
     optimizer.zero_grad()
     loss.backward()
+    for param in agent.parameters():
+        param.grad.data.clamp_(-1, 1)
     optimizer.step()
     return loss.item()
 
@@ -105,7 +107,7 @@ if __name__ == "__main__":
     
     total_time = 0
     cumureward = 0
-
+    batch_steps = 0
     for episode in range(1,EPISODES+500000000000):
         observation = env.reset()
         state.append(getFrame(observation))
@@ -113,7 +115,7 @@ if __name__ == "__main__":
         state.append(getFrame(observation))
         state.append(getFrame(observation))
         gamereward = 0
-        while True:
+        while batch_steps < 5000:
             action = predict_POLICY(agent, makeState(state)/255, transition)
             if action == 0:
                 observation, reward, done, info = env.step(2)##UP
@@ -123,18 +125,20 @@ if __name__ == "__main__":
             state.append(getFrame(observation))
             cumureward += reward
             total_time += 1
+            batch_steps += 1
             gamereward += reward
             env.render()
             if done:
                 print("Running reward: ", gamereward)
                 rewards.append(gamereward)
-                break
-        if episode % 100 == 0:
-            saveModel(agent, "POLICY_WEIGHTS.pth")
-            saveModel(value_estimator, "VALUE_WEIGHTS.pth")
-            graph(avgrewards, rewards, POLICY_LOSS, VALUE_ESTIMATOR_LOSS, "fetajuusto/VPG-PONG")
-        if episode % BATCH_SIZE == 0:
-            print("Avg batch reward: ", cumureward/BATCH_SIZE, " Episode: ", episode/BATCH_SIZE, " Steps: ", total_time)
+                gamereward = 0
+                observation = env.reset()
+                state.append(getFrame(observation))
+                state.append(getFrame(observation))
+                state.append(getFrame(observation))
+                state.append(getFrame(observation))
+        if batch_steps >= 5000:
+            print("Batch running reward: ", cumureward, " Episode: ", episode, " Steps: ", total_time)
             ##Put data to a tensor form
             G = transition.discounted_reward(GAMMA)
             G = torch.from_numpy(G).to(device).float()
@@ -156,4 +160,9 @@ if __name__ == "__main__":
             VALUE_ESTIMATOR_LOSS.append(loss_value)
             avgrewards.append(cumureward/BATCH_SIZE)
             cumureward = 0
+            batch_steps = 0
             transition.resetTransitions()
+            if total_time % 100000 == 0:
+                saveModel(agent, "POLICY_WEIGHTS.pth")
+                saveModel(value_estimator, "VALUE_WEIGHTS.pth")
+                graph(avgrewards, rewards, POLICY_LOSS, VALUE_ESTIMATOR_LOSS, "fetajuusto/VPG-PONG")
