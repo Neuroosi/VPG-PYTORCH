@@ -22,7 +22,7 @@ class NeuralNetwork(nn.Module):
         self.fc2 = nn.Linear(512, self.actionSpaceSize)
         torch.nn.init.xavier_uniform_(self.fc2.weight)
         self.relu = nn.ReLU(inplace=True)
-        self.softmax = nn.Softmax()
+        self.logsoftmax = nn.LogSoftmax()
 
     def forward(self, x):
         x = x.to(device)
@@ -32,6 +32,6 @@ class NeuralNetwork(nn.Module):
         # Flatten output to feed into fully connected layers
         x = x.view(x.size()[0], -1)
         x = self.relu(self.fc1(x))
-        x = self.softmax(self.fc2(x))
+        x = self.logsoftmax(self.fc2(x))
         return x
     
